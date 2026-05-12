@@ -1,102 +1,83 @@
-# -*- coding: utf-8 -*-
-"""検索テキスト用の独自ASTノード定義。"""
+"""Typed AST nodes for the Query Engine DSL.
+
+The classes in this module intentionally avoid application-specific models.
+They are small enough to translate directly to TypeScript discriminated unions.
+"""
 from __future__ import annotations
 
-import ast
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Literal, TypeAlias
 
-from logs.search_models import CompareOperator
-
-
-@dataclass(slots=True)
-class QueryNode(ast.AST):
-    """Python文法ではなく、検索テキスト用に組み立てるASTの基底。"""
-
-    _fields: ClassVar[tuple[str, ...]] = ()
+CompareOperator: TypeAlias = Literal["<", "<=", ">", ">=", "==", "!="]
 
 
-@dataclass(slots=True)
-class EmptyNode(QueryNode):
-    """空条件ノード。"""
-
-    _fields: ClassVar[tuple[str, ...]] = ()
+@dataclass(frozen=True, slots=True)
+class EmptyNode:
+    kind: Literal["empty"] = "empty"
 
 
-@dataclass(slots=True)
-class TermNode(QueryNode):
-    """全文検索ノード。"""
-
+@dataclass(frozen=True, slots=True)
+class TermNode:
     term: str
+    kind: Literal["term"] = "term"
 
-    _fields: ClassVar[tuple[str, ...]] = ("term",)
+
+@dataclass(frozen=True, slots=True)
+class PhraseNode:
+    phrase: str
+    kind: Literal["phrase"] = "phrase"
 
 
-@dataclass(slots=True)
-class FieldNode(QueryNode):
-    """field:value 条件ノード。"""
-
+@dataclass(frozen=True, slots=True)
+class FieldNode:
     field: str
     value: str
-
-    _fields: ClassVar[tuple[str, ...]] = ("field", "value")
-
-
-@dataclass(slots=True)
-class RegexNode(QueryNode):
-    """正規表現検索ノード。"""
-
-    pattern: str
-    field: str | None = None
-
-    _fields: ClassVar[tuple[str, ...]] = ("pattern", "field")
+    kind: Literal["field"] = "field"
 
 
-@dataclass(slots=True)
-class SimilarNode(QueryNode):
-    """TF-IDF/文字n-gram風の近似検索ノード。"""
-
-    text: str
-    threshold: float = 0.08
-
-    _fields: ClassVar[tuple[str, ...]] = ("text", "threshold")
-
-
-@dataclass(slots=True)
-class CompareNode(QueryNode):
-    """context.cpu_percent >= 20 のような比較条件ノード。"""
-
+@dataclass(frozen=True, slots=True)
+class CompareNode:
     field: str
     operator: CompareOperator
     value: float
+    kind: Literal["compare"] = "compare"
 
-    _fields: ClassVar[tuple[str, ...]] = ("field", "operator", "value")
+
+@dataclass(frozen=True, slots=True)
+class RegexNode:
+    pattern: str
+    field: str | None = None
+    kind: Literal["regex"] = "regex"
 
 
-@dataclass(slots=True)
-class NotNode(QueryNode):
-    """否定条件ノード。"""
-
+@dataclass(frozen=True, slots=True)
+class NotNode:
     child: QueryNode
+    kind: Literal["not"] = "not"
 
-    _fields: ClassVar[tuple[str, ...]] = ("child",)
 
-
-@dataclass(slots=True)
-class AndNode(QueryNode):
-    """AND条件ノード。"""
-
+@dataclass(frozen=True, slots=True)
+class AndNode:
     left: QueryNode
     right: QueryNode
+    kind: Literal["and"] = "and"
 
-    _fields: ClassVar[tuple[str, ...]] = ("left", "right")
 
-
-@dataclass(slots=True)
-class OrNode(QueryNode):
-    """OR条件ノード。"""
-
+@dataclass(frozen=True, slots=True)
+class OrNode:
     left: QueryNode
     right: QueryNode
+    kind: Literal["or"] = "or"
 
-    _fields: ClassVar[tuple[str, ...]] = ("left", "right")
+
+QueryNode: TypeAlias = (
+    EmptyNode
+    | TermNode
+    | PhraseNode
+    | FieldNode
+    | CompareNode
+    | RegexNode
+    | NotNode
+    | AndNode
+    | OrNode
+)

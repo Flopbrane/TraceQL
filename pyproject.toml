@@ -1,10 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "query-engine"
 version = "0.1.0"
-description = "Structured query DSL engine"
+description = "Dependency-free structured query DSL engine for JSON-like documents"
+readme = "readme.md"
 requires-python = ">=3.12"
 license = "MIT"
-[project.dependencies]
-pydantic = "^2.0"
-sqlalchemy = "^2.0"
-sqlalchemy-utils = "^0.39.0"
+authors = [{ name = "F.Kurokawa" }]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

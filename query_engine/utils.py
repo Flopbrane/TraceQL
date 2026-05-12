@@ -1,0 +1,41 @@
+"""Small utility functions shared by the parser and matcher."""
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+
+def get_path(document: Any, path: str) -> Any:
+    """Read dotted paths from dict/list shaped documents."""
+    current = document
+    for part in path.split("."):
+        if isinstance(current, Mapping):
+            if part not in current:
+                return None
+            current = current[part]
+            continue
+        if isinstance(current, Sequence) and not isinstance(current, (str, bytes, bytearray)):
+            if not part.isdigit():
+                return None
+            index = int(part)
+            if index >= len(current):
+                return None
+            current = current[index]
+            continue
+        return None
+    return current
+
+
+def flatten_text(value: Any) -> str:
+    """Convert nested JSON-like values into searchable text."""
+    if value is None:
+        return ""
+    if isinstance(value, Mapping):
+        parts: list[str] = []
+        for key, child in value.items():
+            parts.append(str(key))
+            parts.append(flatten_text(child))
+        return " ".join(part for part in parts if part)
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return " ".join(flatten_text(child) for child in value)
+    return str(value)
