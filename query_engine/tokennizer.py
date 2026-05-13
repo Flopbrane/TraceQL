@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from query_engine.tokenizer import GRAMMAR, QuerySyntaxError, Token, TokenKind, parse, parse_query, tokenize
 
-__all__ = [
+__all__: list[str] = [
     "GRAMMAR",
     "QuerySyntaxError",
     "Token",

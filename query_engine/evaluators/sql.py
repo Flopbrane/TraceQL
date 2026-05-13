@@ -42,7 +42,9 @@ def compile_sql_where(
     field_mapper: FieldMapper | None = None,
 ) -> SqlCompileResult:
     """検索条件をSQL WHERE句へ変換する。"""
-    compiler = _SqlCompiler(text_column=text_column, field_mapper=field_mapper)
+    compiler: _SqlCompiler = _SqlCompiler(text_column=text_column, field_mapper=field_mapper)
+    sql: str
+    params: list[object]
     sql, params = compiler.compile(_to_node(query))
     return SqlCompileResult(where_sql=sql, params=tuple(params))
 
@@ -64,9 +66,11 @@ class _SqlCompiler:
         if isinstance(node, CompareNode):
             return f"{self._field(node.field)} {node.operator} ?", [node.value]
         if isinstance(node, RegexNode):
-            column = self.text_column if node.field is None else self._field(node.field)
+            column: str = self.text_column if node.field is None else self._field(node.field)
             return f"{column} REGEXP ?", [node.pattern]
         if isinstance(node, NotNode):
+            sql: str
+            params: list[object]
             sql, params = self.compile(node.child)
             return f"NOT ({sql})", params
         if isinstance(node, AndNode):
@@ -76,6 +80,10 @@ class _SqlCompiler:
         raise TypeError(f"未対応の検索ノードです: {node!r}")
 
     def _compile_binary(self, operator: str, left: QueryNode, right: QueryNode) -> tuple[str, list[object]]:
+        left_sql: str
+        left_params: list[object]
+        right_sql: str
+        right_params: list[object]
         left_sql, left_params = self.compile(left)
         right_sql, right_params = self.compile(right)
         return f"({left_sql}) {operator} ({right_sql})", [*left_params, *right_params]
@@ -96,5 +104,5 @@ def _to_node(query: str | SearchQuery | QueryNode) -> QueryNode:
 
 def _quote_identifier(identifier: str) -> str:
     """SQLite向けに識別子を安全にクォートする。"""
-    escaped = identifier.replace('"', '""')
+    escaped: str = identifier.replace('"', '""')
     return f'"{escaped}"'

@@ -38,7 +38,7 @@ def match_query(query: str | SearchQuery | QueryNode, document: Document) -> boo
 
 def search(query: str | SearchQuery | QueryNode, documents: Iterable[Document]) -> list[SearchResult]:
     """文書列から条件に一致する文書を返す。"""
-    node = _to_node(query)
+    node: QueryNode = _to_node(query)
     return [SearchResult(document=document) for document in documents if match_node(node, document)]
 
 
@@ -51,13 +51,13 @@ def match_node(node: QueryNode, document: Document) -> bool:
     if isinstance(node, PhraseNode):
         return _contains(flatten_text(document), node.phrase)
     if isinstance(node, FieldNode):
-        value = get_path(document, node.field)
+        value: Any = get_path(document, node.field)
         return value is not None and _contains(flatten_text(value), node.value)
     if isinstance(node, CompareNode):
-        value = _to_float(get_path(document, node.field))
+        value: float | None = _to_float(get_path(document, node.field))
         return value is not None and COMPARE_FUNCS[node.operator](value, node.value)
     if isinstance(node, RegexNode):
-        haystack = flatten_text(document if node.field is None else get_path(document, node.field))
+        haystack: str = flatten_text(document if node.field is None else get_path(document, node.field))
         return re.search(node.pattern, haystack, flags=re.IGNORECASE) is not None
     if isinstance(node, NotNode):
         return not match_node(node.child, document)

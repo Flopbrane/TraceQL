@@ -15,8 +15,8 @@ DOCX_EXTENSIONS = frozenset({".docx"})
 
 def extract_text_file(path: str | Path, **metadata: Any) -> TextDocument:
     """拡張子に応じて文書を読み込み、TextDocumentへ変換する。"""
-    file_path = Path(path)
-    suffix = file_path.suffix.casefold()
+    file_path: Path = Path(path)
+    suffix: str = file_path.suffix.casefold()
     if suffix in TEXT_EXTENSIONS:
         return _extract_plain_text(file_path, **metadata)
     if suffix in HTML_EXTENSIONS:
@@ -29,24 +29,26 @@ def extract_text_file(path: str | Path, **metadata: Any) -> TextDocument:
 
 
 def _extract_plain_text(path: Path, **metadata: Any) -> TextDocument:
-    charset_normalizer = _import_charset_normalizer()
-    raw = path.read_bytes()
-    detected = charset_normalizer.from_bytes(raw).best()
-    text = "" if detected is None else str(detected)
+    charset_normalizer: Any = _import_charset_normalizer()
+    raw: bytes = path.read_bytes()
+    detected: Any = charset_normalizer.from_bytes(raw).best()
+    text: str = "" if detected is None else str(detected)
     return from_text(text, title=path.stem, source=str(path), **metadata)
 
 
 def _extract_html(path: Path, **metadata: Any) -> TextDocument:
-    charset_normalizer = _import_charset_normalizer()
-    raw = path.read_bytes()
-    detected = charset_normalizer.from_bytes(raw).best()
-    html = "" if detected is None else str(detected)
+    charset_normalizer: Any = _import_charset_normalizer()
+    raw: bytes = path.read_bytes()
+    detected: Any = charset_normalizer.from_bytes(raw).best()
+    html: str = "" if detected is None else str(detected)
     try:
-        bs4 = _import_bs4()
+        bs4: Any = _import_bs4()
     except RuntimeError:
+        title: str
+        text: str
         title, text = _extract_html_with_stdlib(html, default_title=path.stem)
         return from_text(text, title=title, source=str(path), **metadata)
-    soup = bs4.BeautifulSoup(html, "html.parser")
+    soup: Any = bs4.BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
     title = normalize_text(soup.title.get_text(" ")) if soup.title else path.stem
@@ -55,7 +57,7 @@ def _extract_html(path: Path, **metadata: Any) -> TextDocument:
 
 
 def _extract_html_with_stdlib(html: str, *, default_title: str) -> tuple[str, str]:
-    parser = _PlainTextHTMLParser()
+    parser: _PlainTextHTMLParser = _PlainTextHTMLParser()
     parser.feed(html)
     return parser.title or default_title, normalize_text(" ".join(parser.parts))
 
@@ -92,20 +94,20 @@ class _PlainTextHTMLParser(HTMLParser):
 
 
 def _extract_pdf(path: Path, **metadata: Any) -> TextDocument:
-    pypdf = _import_pypdf()
-    reader = pypdf.PdfReader(str(path))
-    parts = [page.extract_text() or "" for page in reader.pages]
+    pypdf: Any = _import_pypdf()
+    reader: Any = pypdf.PdfReader(str(path))
+    parts: list[str] = [page.extract_text() or "" for page in reader.pages]
     return from_text("\n".join(parts), title=path.stem, source=str(path), **metadata)
 
 
 def _extract_docx(path: Path, **metadata: Any) -> TextDocument:
-    docx = _import_docx()
-    document = docx.Document(str(path))
-    parts = [paragraph.text for paragraph in document.paragraphs]
+    docx: Any = _import_docx()
+    document: Any = docx.Document(str(path))
+    parts: list[str] = [paragraph.text for paragraph in document.paragraphs]
     return from_text("\n".join(parts), title=path.stem, source=str(path), **metadata)
 
 
-def _import_charset_normalizer():
+def _import_charset_normalizer() -> Any:
     try:
         import charset_normalizer
     except ImportError as exc:
@@ -113,7 +115,7 @@ def _import_charset_normalizer():
     return charset_normalizer
 
 
-def _import_bs4():
+def _import_bs4() -> Any:
     try:
         import bs4
     except ImportError as exc:
@@ -121,7 +123,7 @@ def _import_bs4():
     return bs4
 
 
-def _import_pypdf():
+def _import_pypdf() -> Any:
     try:
         import pypdf
     except ImportError as exc:
@@ -129,7 +131,7 @@ def _import_pypdf():
     return pypdf
 
 
-def _import_docx():
+def _import_docx() -> Any:
     try:
         import docx
     except ImportError as exc:
