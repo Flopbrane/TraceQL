@@ -1,7 +1,7 @@
-"""Backward-compatible parser exports.
+"""古いimportを残すための互換モジュール。
 
-The misspelled module name is kept temporarily so older examples keep working.
-New code should import from :mod:`query_engine.parser`.
+旧サンプルが動くように、綴りがずれたモジュール名を一時的に残しています。
+新しいコードでは :mod:`query_engine.parser` を使ってください。
 """
 from __future__ import annotations
 

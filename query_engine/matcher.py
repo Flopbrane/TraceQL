@@ -1,4 +1,4 @@
-"""Dependency-free evaluator for Query Engine AST nodes."""
+"""検索DSLのASTを文書へ適用する依存なしの評価器。"""
 from __future__ import annotations
 
 import operator

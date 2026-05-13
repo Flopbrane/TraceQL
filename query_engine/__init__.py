@@ -1,4 +1,4 @@
-"""Query Engine: a small structured text-search DSL."""
+"""Query Engine: 構造化された文章検索DSL。"""
 from __future__ import annotations
 
 from query_engine.ast import (
@@ -16,6 +16,7 @@ from query_engine.ast import (
 from query_engine.matcher import match_query, search
 from query_engine.models import SearchQuery, SearchResult, SortSpec
 from query_engine.parser import GRAMMAR, QuerySyntaxError, parse, parse_query, tokenize
+from query_engine.documents import TextDocument, from_text, from_text_file, normalize_text
 
 __all__ = [
     "AndNode",
@@ -33,7 +34,11 @@ __all__ = [
     "SearchResult",
     "SortSpec",
     "TermNode",
+    "TextDocument",
+    "from_text",
+    "from_text_file",
     "match_query",
+    "normalize_text",
     "parse",
     "parse_query",
     "search",

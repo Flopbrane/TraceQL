@@ -148,13 +148,4 @@ def similarity_score(query_text: str, document_text: str) -> float:
     return cosine_similarity(query_vector, document_vector)
 
 
-# Future OpenAI embeddings hook (requires OPENAI_API_KEY and paid API access):
-# from openai import OpenAI
-#
-# def embedding_vector(text: str) -> list[float]:
-#     client = OpenAI()
-#     response = client.embeddings.create(
-#         model="text-embedding-3-small",
-#         input=text,
-#     )
-#     return response.data[0].embedding
+# 将来OpenAI embeddingsへ差し替える場合は、別モジュールとして追加する。

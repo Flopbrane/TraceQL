@@ -1,4 +1,4 @@
-"""Small utility functions shared by the parser and matcher."""
+"""パーサーと評価器で共有する小さな補助関数。"""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -6,7 +6,7 @@ from typing import Any
 
 
 def get_path(document: Any, path: str) -> Any:
-    """Read dotted paths from dict/list shaped documents."""
+    """dict/list 形状の文書からドット区切りパスで値を取得する。"""
     current = document
     for part in path.split("."):
         if isinstance(current, Mapping):
@@ -27,7 +27,7 @@ def get_path(document: Any, path: str) -> Any:
 
 
 def flatten_text(value: Any) -> str:
-    """Convert nested JSON-like values into searchable text."""
+    """ネストしたJSON風の値を全文検索用テキストへ変換する。"""
     if value is None:
         return ""
     if isinstance(value, Mapping):

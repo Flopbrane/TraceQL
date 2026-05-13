@@ -1,7 +1,7 @@
-"""Typed AST nodes for the Query Engine DSL.
+"""検索DSLのASTノード定義。
 
-The classes in this module intentionally avoid application-specific models.
-They are small enough to translate directly to TypeScript discriminated unions.
+このモジュールはアプリ固有の型へ依存しません。各ノードは小さく保ち、
+TypeScript の discriminated union へ移しやすい形にしています。
 """
 from __future__ import annotations
 

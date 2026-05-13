@@ -1,4 +1,4 @@
-"""Public data types for parsed queries and search results."""
+"""解析済みクエリと検索結果の公開データ型。"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -33,7 +33,7 @@ class SearchResult:
 
 @dataclass(frozen=True, slots=True)
 class GrammarSpec:
-    """Human-readable grammar summary for docs and tests."""
+    """ドキュメントとテストで共有する文法説明。"""
 
     name: str
     version: str

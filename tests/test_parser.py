@@ -1,10 +1,15 @@
 import unittest
 
 from query_engine.ast import AndNode, CompareNode, FieldNode, NotNode, OrNode, PhraseNode, RegexNode, TermNode
+from query_engine.grammer import GRAMMAR, GRAMMAR_EBNF
 from query_engine.parser import QuerySyntaxError, parse, parse_query, tokenize
 
 
 class ParserTests(unittest.TestCase):
+    def test_grammar_is_defined_in_grammar_module(self) -> None:
+        self.assertEqual(GRAMMAR.version, "0.1")
+        self.assertIn("query", GRAMMAR_EBNF)
+
     def test_tokenize_keeps_phrase_as_single_token(self) -> None:
         values = [token.value for token in tokenize('level:ERROR "disk full"')]
 

@@ -1,20 +1,8 @@
-"""Parser for the first stable Query Engine DSL grammar.
-
-Grammar v0.1:
-    query       := or_expr
-    or_expr     := and_expr ("OR" and_expr)*
-    and_expr    := not_expr (("AND")? not_expr)*
-    not_expr    := ("NOT" | "-") not_expr | primary
-    primary     := term | phrase | field | compare | regex | "(" query ")"
-    field       := IDENT ":" VALUE
-    compare     := IDENT OP NUMBER
-    regex       := IDENT? "~" "/" PATTERN "/"
-"""
+"""検索DSL文字列をASTへ変換するパーサー。"""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
 import re
+from dataclasses import dataclass
 
 from query_engine.ast import (
     AndNode,
@@ -28,37 +16,8 @@ from query_engine.ast import (
     RegexNode,
     TermNode,
 )
-from query_engine.models import GrammarSpec, SearchQuery
-
-IDENT_PATTERN = r"[A-Za-z_][A-Za-z0-9_.-]*"
-COMPARE_OPERATORS = {"<", "<=", ">", ">=", "==", "!="}
-
-GRAMMAR = GrammarSpec(
-    name="Query Engine DSL",
-    version="0.1",
-    rules=(
-        "Bare words search all document text.",
-        "Quoted strings search exact phrases.",
-        "field:value matches a field case-insensitively.",
-        "field>=10, field < 10, and related numeric comparisons are supported.",
-        "AND binds tighter than OR; adjacent terms mean AND.",
-        "NOT term and -term negate a child expression.",
-        "Parentheses group expressions.",
-        "field~/pattern/ or ~/pattern/ run regular expression searches.",
-    ),
-)
-
-
-class TokenKind(str, Enum):
-    WORD = "WORD"
-    PHRASE = "PHRASE"
-    LPAREN = "LPAREN"
-    RPAREN = "RPAREN"
-    COLON = "COLON"
-    OP = "OP"
-    REGEX = "REGEX"
-    TILDE = "TILDE"
-    EOF = "EOF"
+from query_engine.grammer import COMPARE_OPERATORS, GRAMMAR, IDENT_PATTERN, TokenKind
+from query_engine.models import SearchQuery
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +28,7 @@ class Token:
 
 
 class QuerySyntaxError(ValueError):
-    """Raised when query text does not match the fixed DSL grammar."""
+    """検索文字列が固定文法に一致しないときに送出する例外。"""
 
 
 def parse_query(text: str) -> SearchQuery:
