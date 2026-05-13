@@ -205,7 +205,7 @@ class _Parser:
     def _starts_primary(self) -> bool:
         token = self._peek()
         if token.kind in {TokenKind.WORD, TokenKind.PHRASE, TokenKind.LPAREN, TokenKind.TILDE}:
-            if token.kind == TokenKind.WORD and token.value.upper() in {"OR"}:
+            if token.kind == TokenKind.WORD and token.value.upper() in {"AND", "OR"}:
                 return False
             return True
         return False

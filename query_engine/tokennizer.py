@@ -1,11 +1,11 @@
-"""古いimportを残すための互換モジュール。
+"""tokenizer.py への互換エイリアス。
 
-旧サンプルが動くように、綴りがずれたモジュール名を一時的に残しています。
-新しいコードでは :mod:`query_engine.parser` を使ってください。
+古い綴りのimportを一時的に残します。新しいコードでは
+query_engine.tokenizer を使ってください。
 """
 from __future__ import annotations
 
-from query_engine.parser import GRAMMAR, QuerySyntaxError, Token, TokenKind, parse, parse_query, tokenize
+from query_engine.tokenizer import GRAMMAR, QuerySyntaxError, Token, TokenKind, parse, parse_query, tokenize
 
 __all__ = [
     "GRAMMAR",
