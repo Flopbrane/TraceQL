@@ -1,6 +1,8 @@
+beautifulsoup4>=4.12
+pypdf>=4.0
+python-docx>=1.1
 charset-normalizer>=3.4
 pydantic>=2.11
 PyYAML>=6.0
 regex>=2025.7
 typing_extensions>=4.15
-tzdata>=2025.3
