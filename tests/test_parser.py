@@ -1,7 +1,7 @@
 import unittest
 
 from query_engine.ast import AndNode, CompareNode, FieldNode, NotNode, OrNode, PhraseNode, RegexNode, TermNode
-from query_engine.grammer import GRAMMAR, GRAMMAR_EBNF
+from query_engine.grammar import GRAMMAR, GRAMMAR_EBNF
 from query_engine.parser import QuerySyntaxError, parse, parse_query, tokenize
 
 

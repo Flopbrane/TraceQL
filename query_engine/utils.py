@@ -2,25 +2,27 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 
 def get_path(document: Any, path: str) -> Any:
     """dict/list 形状の文書からドット区切りパスで値を取得する。"""
-    current = document
+    current: object = document
     for part in path.split("."):
         if isinstance(current, Mapping):
-            if part not in current:
+            mapping = cast("Mapping[str, object]", current)
+            if part not in mapping:
                 return None
-            current = current[part]
+            current = mapping[part]
             continue
         if isinstance(current, Sequence) and not isinstance(current, (str, bytes, bytearray)):
+            sequence = cast("Sequence[object]", current)
             if not part.isdigit():
                 return None
             index = int(part)
-            if index >= len(current):
+            if index >= len(sequence):
                 return None
-            current = current[index]
+            current = sequence[index]
             continue
         return None
     return current
@@ -31,11 +33,13 @@ def flatten_text(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, Mapping):
+        mapping = cast("Mapping[object, object]", value)
         parts: list[str] = []
-        for key, child in value.items():
+        for key, child in mapping.items():
             parts.append(str(key))
             parts.append(flatten_text(child))
         return " ".join(part for part in parts if part)
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return " ".join(flatten_text(child) for child in value)
+        sequence = cast("Sequence[object]", value)
+        return " ".join(flatten_text(child) for child in sequence)
     return str(value)

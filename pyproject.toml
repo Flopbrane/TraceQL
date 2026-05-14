@@ -6,11 +6,20 @@ build-backend = "hatchling.build"
 name = "query-engine"
 version = "0.1.0"
 description = "Dependency-free structured query DSL engine for JSON-like documents"
-readme = "readme.md"
+readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
-authors = [{ name = "F.Kurokawa" }]
+
+authors = [
+    { name = "F.Kurokawa" }
+]
+
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Flopbrane/TraceQL"
+Repository = "https://github.com/Flopbrane/TraceQL"
+Issues = "https://github.com/Flopbrane/TraceQL/issues"
 
 [project.optional-dependencies]
 test = []
@@ -24,3 +33,23 @@ docs = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.hatch.build.targets.wheel]
+packages = ["query_engine"]
+
+keywords = [
+    "dsl",
+    "query",
+    "json",
+    "jsonl",
+    "log-analysis",
+    "search-engine",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]

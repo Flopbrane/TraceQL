@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import cast
 
 from query_engine.ast import (
     AndNode,
     CompareNode,
+    CompareOperator,
     EmptyNode,
     FieldNode,
     NotNode,
@@ -18,6 +20,15 @@ from query_engine.ast import (
 )
 from query_engine.grammar import COMPARE_OPERATORS, GRAMMAR, IDENT_PATTERN, TokenKind
 from query_engine.models import SearchQuery
+
+__all__ = [
+    "GRAMMAR",
+    "QuerySyntaxError",
+    "Token",
+    "parse",
+    "parse_query",
+    "tokenize",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,7 +199,7 @@ class _Parser:
         if self._match(TokenKind.TILDE):
             return RegexNode(field=_validate_identifier(word), pattern=self._expect(TokenKind.REGEX).value)
         if self._peek().kind == TokenKind.OP:
-            operator: str = self._advance().value
+            operator: CompareOperator = _parse_compare_operator(self._advance().value)
             number: str = self._expect(TokenKind.WORD).value
             return CompareNode(field=_validate_identifier(word), operator=operator, value=_parse_number(number))
         compact: QueryNode | None = _parse_compact_atom(word)
@@ -246,7 +257,7 @@ def _parse_compact_atom(word: str) -> QueryNode | None:
     if compare_match:
         return CompareNode(
             field=compare_match.group(1),
-            operator=compare_match.group(2),
+            operator=_parse_compare_operator(compare_match.group(2)),
             value=float(compare_match.group(3)),
         )
     return None
@@ -263,3 +274,9 @@ def _parse_number(value: str) -> float:
         return float(value)
     except ValueError as exc:
         raise QuerySyntaxError(f"Expected numeric value, got {value!r}.") from exc
+
+
+def _parse_compare_operator(value: str) -> CompareOperator:
+    if value in COMPARE_OPERATORS:
+        return cast(CompareOperator, value)
+    raise QuerySyntaxError(f"Invalid comparison operator: {value!r}.")
