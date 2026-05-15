@@ -1,0 +1,124 @@
+"""Loggerの検索窓からTraceQL検索コアを使うための橋渡し。"""
+from __future__ import annotations
+
+import re
+from datetime import datetime, timedelta, timezone, tzinfo
+from typing import Any, Mapping, cast
+from zoneinfo import ZoneInfo
+
+from logger_window.logs.log_types import LogDict
+
+# TRACEQL_ROOT = Path(__file__).resolve().parents[2]
+# if str(TRACEQL_ROOT) not in sys.path:
+#     sys.path.insert(0, str(TRACEQL_ROOT))
+from query_engine.evaluators.memory import match_query  # noqa: E402
+from query_engine.models import Document  # noqa: E402
+
+SORT_PATTERN: re.Pattern[str] = re.compile(
+    r"^(?P<body>.*?)"
+    r"(?:\s+)?sort\s+by\s+"
+    r"(?P<field>[A-Za-z_][\w.]*|time|level|message)"
+    r"(?:\s+(?P<direction>asc|desc))?\s*$",
+    flags=re.IGNORECASE,
+)
+TOP_PATTERN: re.Pattern[str] = re.compile(
+    r"^top\s+"
+    r"(?P<limit>\d+)\s+by\s+"
+    r"(?P<field>[A-Za-z_][\w.]*|time|level|message)"
+    r"(?:\s+(?P<direction>asc|desc))?"
+    r"(?:\s+where\s+(?P<body>.+))?\s*$",
+    flags=re.IGNORECASE,
+)
+
+
+def match_traceql_search(log: LogDict, raw_query: str, tz: str | tzinfo) -> bool:
+    """Loggerの1行をTraceQLのメモリ検索で判定する。"""
+    query: str = _strip_result_modifiers(raw_query).strip()
+    if not query:
+        return True
+    return match_query(query, log_to_traceql_document(log, tz))
+
+
+def log_to_traceql_document(log: LogDict, tz: str | tzinfo) -> Document:
+    """LoggerのLogDictをTraceQLが扱いやすいDocumentへ変換する。"""
+    where: Mapping[str, Any] = cast(Mapping[str, Any], log.get("where", {}))
+    what: Mapping[str, Any] = cast(Mapping[str, Any], log.get("what", {}))
+    context: Mapping[str, Any] = cast(Mapping[str, Any], log.get("context", {}))
+    message: str = str(what.get("message", ""))
+    local_dt: datetime | None = _to_local_datetime(log.get("time"), tz)
+
+    document: dict[str, Any] = {
+        "level": log.get("level", ""),
+        "time": log.get("time", ""),
+        "trace_id": log.get("trace_id", ""),
+        "trace": log.get("trace_id", ""),
+        "output": log.get("output", ""),
+        "where": dict(where),
+        "what": dict(what),
+        "context": dict(context),
+        "message": message,
+        "msg": message,
+        "function": where.get("function", ""),
+        "func": where.get("function", ""),
+        "file": where.get("file", ""),
+        "module": where.get("module", ""),
+        "line": where.get("line", ""),
+    }
+    if local_dt is not None:
+        document["local_time"] = local_dt.isoformat(timespec="seconds")
+        document["local_date"] = local_dt.strftime("%Y-%m-%d")
+        document["local_clock"] = local_dt.strftime("%H:%M:%S")
+        document["date"] = document["local_date"]
+
+    return document
+
+
+def should_use_legacy_search(raw_query: str) -> bool:
+    """TraceQLへ渡さず、Logger旧検索に任せる構文を判定する。"""
+    query: str = _strip_result_modifiers(raw_query).strip()
+    if not query:
+        return False
+    lower: str = query.lower()
+    if "(ignore:" in lower:
+        return True
+    if lower.startswith(("regex ", "similar ", "count ", "max ", "min ", "avg ", "ave ", "mean ", "median ", "mode ")):
+        return True
+    if lower.startswith("group by "):
+        return True
+    if ".." in query or " - " in query:
+        return True
+    return False
+
+
+def _strip_result_modifiers(raw_query: str) -> str:
+    stripped: str = raw_query.strip()
+    top_match: re.Match[str] | None = TOP_PATTERN.fullmatch(stripped)
+    if top_match is not None:
+        return (top_match.group("body") or "").strip()
+    sort_match: re.Match[str] | None = SORT_PATTERN.fullmatch(stripped)
+    if sort_match is not None:
+        return (sort_match.group("body") or "").strip()
+    return stripped
+
+
+def _to_local_datetime(raw_time: object, tz: str | tzinfo) -> datetime | None:
+    if not isinstance(raw_time, str):
+        return None
+    try:
+        dt: datetime = datetime.fromisoformat(raw_time)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(_resolve_timezone(tz))
+
+
+def _resolve_timezone(tz: str | tzinfo) -> tzinfo:
+    if isinstance(tz, tzinfo):
+        return tz
+    try:
+        return ZoneInfo(tz)
+    except Exception:
+        if tz == "Asia/Tokyo":
+            return timezone(timedelta(hours=9))
+        return timezone.utc
