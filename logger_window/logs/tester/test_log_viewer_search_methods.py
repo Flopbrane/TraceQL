@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+
+#########################
+# Author: F.Kurokawa
+# Description:
+#
+#########################
+
 """LogViewer の検索テキストボックスを実メソッドで検証するテストScript。
 
 目的:
@@ -27,8 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-import logs.log_viewer as lv
-
+from logger_window.logs import log_viewer as lv
 from logger_window.logs.log_searcher import collect_logs, summarize
 from logger_window.logs.log_types import LogDict
 from logger_window.logs.search_text_analysis import parse_query
@@ -139,7 +145,7 @@ def debug_range_parse(viewer: lv.LogViewer, query: str) -> str:
         return ""
 
     try:
-        parsed = parse_query(query, viewer.current_tz)
+        parsed: lv.SearchQuery = parse_query(query, viewer.current_tz)
         return f"parse_query -> start={parsed.start!s}, end={parsed.end!s}"
     except Exception as exc:  # pylint: disable=broad-exception-caught
         return f"parse_query ERROR -> {exc!r}"

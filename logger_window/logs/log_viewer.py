@@ -14,10 +14,12 @@ import json
 import subprocess
 import tkinter as tk
 from datetime import datetime
+from datetime import timezone as tzinfo
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-from typing import Any, Final
+from typing import Any, Final, Literal
 
+import logger_window.logs.search_matcher as sm
 from logger_window.logs.display_formatter import LogRenderer
 from logger_window.logs.log_paths import LOGS_DIR
 from logger_window.logs.log_searcher import collect_logs, summarize
@@ -35,9 +37,10 @@ from logger_window.logs.search_matcher import (
     match_search_query,
     run_aggregate_query,
 )
-from logger_window.logs.search_models import SearchQuery
+from logger_window.logs.search_models import AggregateResult, SearchQuery
 from logger_window.logs.search_text_analysis import parse_query
 from logger_window.logs.time_utils import (
+    LoggerLike,
     to_world_local_datetime,
 )
 from logger_window.logs.tzinfo_formatter import (
@@ -48,6 +51,9 @@ from logger_window.logs.tzinfo_formatter import (
 
 WindowWidget = tk.Tk | tk.Toplevel
 ParentWidget = tk.Tk | tk.Toplevel | tk.Frame | ttk.Frame
+
+Loglike = Any  # ロガーっぽいオブジェクトの型ヒント
+print(sm.__file__)
 
 class LogFileSelector:
     """ログファイル一覧を表示し、複数選択させるダイアログ"""
@@ -124,13 +130,18 @@ class LogViewer:
     TRACE_ALL: Final[str] = "trace.id_ALL"
     TYPE_ALL: Final[str] = "type_ALL"
 
-    def __init__(self, parent: tk.Tk, initial_log_path: Path | None = None) -> None:
+    def __init__(
+        self,
+        parent: tk.Tk,
+        initial_log_path: Path | None = None,
+        logger: Loglike | None = None
+    ) -> None:
         self.root: tk.Tk = parent
         self.root.title("Log Viewer")
         self.root.geometry("1200x650+100+100")
         # 基本設定
         self.log_dir: Path = LOGS_DIR
-
+        self.logger: LoggerLike | None = logger
         # ----元ログ (raw)----
         self.raw_rows: list[LogDict] = []
         # ----検索後ログ (filtered)----
@@ -525,8 +536,8 @@ class LogViewer:
         window.transient(self.root)
         window.grab_set()
 
-        key_status = "登録済み" if has_openai_api_key() else "未登録"
-        messages = [
+        key_status: Literal['登録済み'] | Literal['未登録'] = "登録済み" if has_openai_api_key() else "未登録"
+        messages: list[str] = [
             "現在の similar 検索: ローカル近似検索",
             f"OPEN API Key: {key_status}",
             "Key未登録時はAPIを使わず、TF-IDF/文字n-gram近似検索で動作します。",
@@ -661,6 +672,17 @@ class LogViewer:
         self.aggregate_result_var.set("")
 
         self.filtered_rows = []
+        # debag用
+        if self.logger is not None:
+            self.logger.debug(
+                "apply_filter start",
+                context={
+                    "start_time": datetime.now(tzinfo.utc).replace(microsecond=0).isoformat(),
+                    "search": search_text,
+                    "raw_rows": len(self.raw_rows),
+                    "rows": len(self.rows),
+                },
+            )
 
         # 🔹 画面クリア
         for item_id in self.tree.get_children():
@@ -683,8 +705,41 @@ class LogViewer:
 
             # 🔹 表示
             self.filtered_rows.append(row)
-
+        # debag用
+        if self.logger is not None:
+            self.logger.debug(
+                "filter completed",
+                context={
+                    "filtered_count": len(self.filtered_rows),
+                },
+        )
+        
         self.filtered_rows = apply_result_modifiers(self.filtered_rows, search_query, tz)
+
+        # debag用
+        try:
+            self.filtered_rows = apply_result_modifiers(
+                self.filtered_rows,
+                search_query,
+                tz,
+            )
+
+            if self.logger:
+                self.logger.debug(
+                    "filtered_rows prepared",
+                    context={
+                        "display_rows": len(self.filtered_rows),
+                    },
+                )
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(
+                    "apply_result_modifiers failed",
+                    context={
+                        "error": str(e),
+                    },
+                )
 
         # 🔹 表示
         display_index = 0
@@ -706,9 +761,8 @@ class LogViewer:
             display_index += 1
 
         if search_query.aggregate is not None:
-            result = run_aggregate_query(self.filtered_rows, search_query.aggregate, tz)
+            result: AggregateResult = run_aggregate_query(self.filtered_rows, search_query.aggregate, tz)
             self.aggregate_result_var.set(result.message)
-
 
     def _format_world_local_time(self, value: Any) -> str:
         """UTCをworld_local時間文字列へ変換する"""
