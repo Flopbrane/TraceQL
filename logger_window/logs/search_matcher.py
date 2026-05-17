@@ -530,12 +530,12 @@ def run_aggregate_query(
     if not values:
         value = None
     else:
-        counts: Counter[str] = Counter(values)
+        counts: Counter[object] = Counter(values)
         top_count: int = counts.most_common(1)[0][1]
-        modes: list[str] = sorted(value for value, count in counts.items() if count == top_count)
+        modes: list[str] = sorted([str(value) for value, count in counts.items() if count == top_count])
         value = ", ".join(modes)
 
-    message = (
+    message: str = (
         f"{function} {field} = {_format_aggregate_value(value)} "
         f"(logs={len(matched_logs)}, values={len(values)})"
     )
@@ -573,7 +573,7 @@ def filter_logs(
     return [log for log in logs if match_search_query(log, parsed, tz)]
 
 
-def _sort_value(log: LogDict, sort: SortSpec, tz: str | tzinfo) -> tuple[int, object]:
+def _sort_value(log: LogDict, sort: SortSpec, tz: str | tzinfo) -> tuple[int, float | str]:
     field: str = sort.field.lower()
     if field == "time":
         local_dt: datetime | None = to_local_datetime(log.get("time"), tz)

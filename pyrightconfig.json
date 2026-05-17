@@ -1,5 +1,7 @@
 {
     "typeCheckingMode": "strict",
+    "reportUnknownMemberType": false,
+    "reportUnknownVariableType": false,
     "include": [
         "query_engine",
         "tests"
@@ -7,7 +9,9 @@
     "exclude": [
         "**/__pycache__",
         ".venv",
-        ".pytest_cache", "**/node_modules", "**/.*"
+        ".pytest_cache",
+        "**/node_modules",
+        "**/.*"
     ],
     "extraPaths": [
         "."

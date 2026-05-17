@@ -137,15 +137,15 @@ def parse_date_or_datetime(text: str, *, is_end: bool, tz: str | tzinfo) -> date
 
 
 def is_date_query(query: str) -> bool:
-    return re.fullmatch(r"\d{4}-\d{2}-\d{2}", query) is not None
+    return re.fullmatch(r"\d{4}-\d{1,2}-\d{1,2}", query) is not None
 
 
 def is_time_query(query: str) -> bool:
-    return re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", query) is not None
+    return re.fullmatch(r"\d{1,2}:\d{1,2}(:\d{1,2})?", query) is not None
 
 
 def is_datetime_prefix_query(query: str) -> bool:
-    return re.fullmatch(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?", query) is not None
+    return re.fullmatch(r"\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}(:\d{1,2})?", query) is not None
 
 
 def split_range_query(query: str) -> tuple[str, str] | None:
