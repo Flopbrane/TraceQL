@@ -51,8 +51,8 @@ def match_node(node: QueryNode, document: Document) -> bool:
     if isinstance(node, PhraseNode):
         return _contains(flatten_text(document), node.phrase)
     if isinstance(node, FieldNode):
-        value: Any = get_path(document, node.field)
-        return value is not None and _contains(flatten_text(value), node.value)
+        field_value: Any = get_path(document, node.field)
+        return field_value is not None and _contains(flatten_text(field_value), node.value)
     if isinstance(node, CompareNode):
         value: float | None = _to_float(get_path(document, node.field))
         return value is not None and COMPARE_FUNCS[node.operator](value, node.value)

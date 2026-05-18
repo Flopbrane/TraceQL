@@ -10,13 +10,13 @@ def get_path(document: Any, path: str) -> Any:
     current: object = document
     for part in path.split("."):
         if isinstance(current, Mapping):
-            mapping = cast("Mapping[str, object]", current)
+            mapping: Mapping[str, object] = cast("Mapping[str, object]", current)
             if part not in mapping:
                 return None
             current = mapping[part]
             continue
         if isinstance(current, Sequence) and not isinstance(current, (str, bytes, bytearray)):
-            sequence = cast("Sequence[object]", current)
+            sequence: Sequence[object] = cast("Sequence[object]", current)
             if not part.isdigit():
                 return None
             index = int(part)
@@ -33,7 +33,7 @@ def flatten_text(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, Mapping):
-        mapping = cast("Mapping[object, object]", value)
+        mapping: Mapping[object, object] = cast("Mapping[object, object]", value)
         parts: list[str] = []
         for key, child in mapping.items():
             parts.append(str(key))

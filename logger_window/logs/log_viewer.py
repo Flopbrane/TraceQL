@@ -777,7 +777,9 @@ class LogViewer:
         type_filter: str = self.type_var.get()
         search_text: str = self.search_var.get().strip()
         tz: str = self.current_tz
+        print(f"before: {search_text!r}")
         search_text = self._searchtext_datetime_builder(search_text)
+        print(f"after: {search_text!r}")
         search_query: SearchQuery = parse_query(search_text, tz)
         self.aggregate_result_var.set("")
         print(f"logger: {bool(self.logger)}")

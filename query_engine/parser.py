@@ -21,7 +21,7 @@ from query_engine.ast import (
 from query_engine.grammar import COMPARE_OPERATORS, GRAMMAR, IDENT_PATTERN, TokenKind
 from query_engine.models import SearchQuery
 
-__all__ = [
+__all__: list[str] = [
     "GRAMMAR",
     "QuerySyntaxError",
     "Token",
@@ -56,9 +56,41 @@ def tokenize(text: str) -> list[Token]:
     tokens: list[Token] = []
     index = 0
     length: int = len(text)
-
     while index < length:
         char: str = text[index]
+        if char.isdigit():
+            # 日時 token: YYYY-MM-DD HH:MM / YYYY-MM-DD HH:MM:SS
+            datetime_match: re.Match[str] | None = re.match(
+                r"\d{2,4}-\d{1,2}-\d{1,2} \d{1,2}:\d{2}(:\d{2})?",
+                text[index:],
+            )
+            if datetime_match:
+                value: str = datetime_match.group(0)
+                tokens.append(Token(TokenKind.WORD, value, index))
+                index += len(value)
+                continue
+
+            # 時刻 token: HH:MM / HH:MM:SS
+            time_match: re.Match[str] | None = re.match(
+                r"(?:[01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?",
+                text[index:],
+            )
+            if time_match:
+                value = time_match.group(0)
+                tokens.append(Token(TokenKind.WORD, value, index))
+                index += len(value)
+                continue
+
+            # 日付 token: YYYY-MM-DD
+            date_match: re.Match[str] | None = re.match(
+                r"\d{2,4}-\d{1,2}-\d{1,2}",
+                text[index:],
+            )
+            if date_match:
+                value = date_match.group(0)
+                tokens.append(Token(TokenKind.WORD, value, index))
+                index += len(value)
+                continue
         if char.isspace():
             index += 1
             continue
@@ -145,8 +177,8 @@ def _read_regex(text: str, index: int) -> tuple[str, int]:
 
 class _Parser:
     def __init__(self, tokens: list[Token], *, raw_text: str) -> None:
-        self.tokens = tokens
-        self.raw_text = raw_text
+        self.tokens: list[Token] = tokens
+        self.raw_text: str = raw_text
         self.index = 0
 
     def parse(self) -> QueryNode:

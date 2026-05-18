@@ -6,15 +6,16 @@ import hashlib
 import json
 import math
 import re
+from _collections_abc import dict_items
 from collections import Counter
 from pathlib import Path
 from typing import Any, cast
 
 DEFAULT_SIMILARITY_THRESHOLD = 0.08
 SIMILARITY_CACHE_KIND = "tfidf_char_ngram_v1"
-CACHE_PATH = Path(__file__).with_name("_cash.jsonl")
+CACHE_PATH: Path = Path(__file__).with_name("_cash.jsonl")
 
-TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+TOKEN_PATTERN: re.Pattern[str] = re.compile(r"[a-z0-9]+")
 
 QUERY_SYNONYMS: dict[str, tuple[str, ...]] = {
     "gpu": ("gpu", "graphics", "video", "vram"),
@@ -91,7 +92,7 @@ def _load_cache() -> dict[str, Counter[str]]:
             text_hash: object = record.get("hash")
             raw_vector: object = record.get("vector")
             if isinstance(text_hash, str) and isinstance(raw_vector, dict):
-                vector_items = cast("dict[object, object]", raw_vector).items()
+                vector_items: dict_items[object, object] = cast("dict[object, object]", raw_vector).items()
                 cache[text_hash] = Counter(
                     {
                         str(key): int(value)
