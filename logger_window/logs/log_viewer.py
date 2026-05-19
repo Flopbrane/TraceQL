@@ -21,6 +21,7 @@ from typing import Any, Final, Literal
 
 from logger_window.logs.display_formatter import LogRenderer
 from logger_window.logs.log_app import get_logger
+from logger_window.logs.log_multi_select import LogFileSelector
 from logger_window.logs.log_paths import LOGS_DIR
 from logger_window.logs.log_searcher import collect_logs, summarize
 from logger_window.logs.log_storage import load_log
@@ -55,74 +56,6 @@ from logger_window.logs.tzinfo_formatter import (
 
 WindowWidget = tk.Tk | tk.Toplevel
 ParentWidget = tk.Tk | tk.Toplevel | tk.Frame | ttk.Frame
-
-class LogFileSelector:
-    """ログファイル一覧を表示し、複数選択させるダイアログ"""
-
-    def __init__(self, parent: WindowWidget, log_dir: Path) -> None:
-        self.parent = parent
-        self.log_dir: Path = log_dir
-
-    def show(self) -> list[Path] | None:
-        """ログファイル一覧を表示し、選択結果を返す"""
-        window = tk.Toplevel(self.parent)
-        window.title("ログ選択")
-        window.geometry("700x500")
-        window.transient(self.parent) # window系のプロパティなので、Frameが入るとエラーになる
-        window.grab_set()
-
-        files: list[Path] = sorted(
-            list(self.log_dir.glob("*.jsonl")) +
-            list(self.log_dir.glob("*.log")),
-            key=lambda p: p.name
-        )
-
-        if not files:
-            tk.Label(window, text="ログファイルが見つかりません").pack(
-                padx=12,
-                pady=12,
-                anchor="w",
-            )
-            tk.Button(window, text="閉じる", command=window.destroy).pack(pady=8)
-            window.wait_window()
-            return None
-
-        listbox = tk.Listbox(
-            window,
-            selectmode=tk.MULTIPLE,
-            width=100,
-            height=20,
-            exportselection=False,
-        )
-        listbox.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
-
-        for file_path in files:
-            listbox.insert(tk.END, file_path.name)
-
-        selected_paths: list[Path] = []
-
-        def on_open() -> None:
-            """選択したLog_Pathを読み込む"""
-            indices: tuple[int, ...] = listbox.curselection() # type: ignore
-            for index in indices:  # type: ignore
-                selected_paths.append(files[index])
-            window.destroy()
-
-        def on_cancel() -> None:
-            """キャンセルボタン処理"""
-            window.destroy()
-
-        button_frame = tk.Frame(window)
-        button_frame.pack(fill=tk.X, padx=12, pady=(0, 12))
-
-        tk.Button(button_frame, text="開く", command=on_open).pack(side=tk.LEFT)
-        tk.Button(button_frame, text="キャンセル", command=on_cancel).pack(
-            side=tk.LEFT,
-            padx=8,
-        )
-
-        window.wait_window()
-        return selected_paths if selected_paths else None
 
 
 class LogViewer:
@@ -595,7 +528,7 @@ class LogViewer:
 
         # ③ Viewerにセット
         self.raw_rows = safe_logs
-        self.rows: list[Event] = events
+        self.event_rows: list[Event] = events
 
         self.update_filters()
         self.apply_filter()
@@ -616,7 +549,7 @@ class LogViewer:
         logs: list[LogDict] = collect_logs([Path(file_path_str)])
 
         self.raw_rows = logs
-        self.rows = summarize(logs)
+        self.event_rows = summarize(logs)
         self.update_filters()
         self.apply_filter()
 
@@ -633,7 +566,7 @@ class LogViewer:
 
         # 🔹 Viewerは表示だけ
         self.raw_rows = logs
-        self.rows = summarize(logs)
+        self.event_rows = summarize(logs)
         self.update_filters()
         self.apply_filter()
 
@@ -797,8 +730,7 @@ class LogViewer:
         )
 
         # 🔹 画面クリア
-        for item_id in self.tree.get_children():
-            self.tree.delete(item_id)
+        self.tree.delete(*self.tree.get_children())
 
         for row in self.raw_rows:
             row_trace_id: str = self._get_log_trace_id(row)
@@ -819,9 +751,24 @@ class LogViewer:
             # print(f"match_search_query: {match_search_query(row, search_query, tz)}")
             
             if should_use_legacy_search(search_text):
-                matched: bool = match_search_query(row, search_query, tz)
+                matched: bool = match_search_query(row, search_text, tz)
             else:
-                matched = match_traceql_search(row, search_text, tz)
+                try:
+                    matched = match_traceql_search(
+                        row,
+                        search_text, # type: ignore
+                        tz
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        "match_traceql_search failed",
+                        context={
+                            "error": str(e),
+                            "row": row,
+                            "search_text": search_text,
+                        },
+                    )
+                    matched = False
 
             if not matched:
                 continue
