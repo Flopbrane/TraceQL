@@ -99,9 +99,8 @@ def build_viewer_with_logs(paths: list[Path]) -> tuple[tk.Tk, lv.LogViewer]:
 
     viewer = lv.LogViewer(root)
 
-        # 🔥 応急処置
-    if not hasattr(viewer, "current_tz"):
-        viewer.current_tz = "Asia/Tokyo"
+    # テストデータの期待値は Asia/Tokyo のローカル時刻で固定する。
+    viewer.set_timezone("Asia/Tokyo")
 
     logs: list[LogDict] = collect_logs(paths)
 
@@ -110,7 +109,7 @@ def build_viewer_with_logs(paths: list[Path]) -> tuple[tk.Tk, lv.LogViewer]:
     # 🔥 summarizeしない
     viewer.raw_rows = logs
 
-    viewer.rows = summarize(logs)  # ここは summarize を通す（Event化）
+    viewer.event_rows = summarize(logs)  # ここは summarize を通す（Event化）
 
     viewer.update_filters()
     viewer.apply_filter()
@@ -171,7 +170,7 @@ def main() -> int:
     print()
     print(f"loaded raw logs: {len(viewer.raw_rows)}")
     print(f"loaded filtered logs: {len(viewer.filtered_rows)}")
-    print(f"loaded events: {len(viewer.rows)}")
+    print(f"loaded events: {len(viewer.event_rows)}")
     print(f"timezone: {viewer.current_tz}")
     print()
     # 前回の独自テスターで期待していた件数。

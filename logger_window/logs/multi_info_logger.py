@@ -59,7 +59,7 @@ from typing import Any, Iterable, cast
 from logger_window.logs.context_builder import ctx
 from logger_window.logs.log_paths import LOGS_DIR  # ← ここ重要
 from logger_window.logs.log_types import ISODateTimeStr, LogLevel, LogOutput, LogWhat, LogWhere, RawLogRecord  # ← ここ重要
-from logger_window.logs.logger_config import LoggerConfig
+from logger_window.logs.log_config import LoggerConfig
 from logger_window.logs.time_utils import (
     DateLike,
     now_utc,

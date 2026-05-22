@@ -25,8 +25,8 @@ def sample_log() -> LogDict:
             "status": "failed",
         },
         "context": {
-            "cpu_percent": 21.9,
-            "gpu_mem_total_mb": 2048,
+            "cpu_percent": {"type": "float", "value": 21.9},
+            "gpu_mem_total_mb": {"type": "int", "value": 2048},
         },
         "output": "file",
     }
@@ -39,7 +39,15 @@ class LoggerWindowTraceQLBridgeTests(unittest.TestCase):
         self.assertTrue(match_search_query(log, "message:system_gpu_status", "Asia/Tokyo"))
         self.assertTrue(match_search_query(log, "function:run_test file:system_monitor.py", "Asia/Tokyo"))
         self.assertTrue(match_search_query(log, "context.cpu_percent>=20", "Asia/Tokyo"))
+        self.assertTrue(match_search_query(log, "context:cpu_percent", "Asia/Tokyo"))
         self.assertFalse(match_search_query(log, "level:INFO", "Asia/Tokyo"))
+
+    def test_search_window_treats_invalid_traceql_as_no_match(self) -> None:
+        log = sample_log()
+
+        self.assertFalse(match_search_query(log, "level:", "Asia/Tokyo"))
+        self.assertFalse(match_search_query(log, ":ERROR", "Asia/Tokyo"))
+        self.assertFalse(match_search_query(log, "context.cpu_percent >>80", "Asia/Tokyo"))
 
     def test_search_window_uses_traceql_boolean_and_sort_body(self) -> None:
         log = sample_log()

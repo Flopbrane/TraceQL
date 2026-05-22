@@ -14,7 +14,7 @@ from subprocess import CompletedProcess
 from typing import Any, Callable, Literal, Protocol, TypeAlias, runtime_checkable
 from zoneinfo import ZoneInfo, available_timezones
 
-from logger_window.logs.logger_config import LoggerConfig
+from logger_window.logs.log_config import LoggerConfig
 
 
 @runtime_checkable

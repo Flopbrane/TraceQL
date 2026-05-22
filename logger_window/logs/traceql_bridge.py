@@ -13,6 +13,7 @@ from logger_window.logs.log_types import LogDict
 #     sys.path.insert(0, str(TRACEQL_ROOT))
 from query_engine.evaluators.memory import match_query  # noqa: E402
 from query_engine.models import Document  # noqa: E402
+from query_engine.parser import QuerySyntaxError  # noqa: E402
 
 SORT_PATTERN: re.Pattern[str] = re.compile(
     r"^(?P<body>.*?)"
@@ -36,7 +37,10 @@ def match_traceql_search(log: LogDict, raw_query: str, tz: str | tzinfo) -> bool
     query: str = _strip_result_modifiers(raw_query).strip()
     if not query:
         return True
-    return match_query(query, log_to_traceql_document(log, tz))
+    try:
+        return match_query(query, log_to_traceql_document(log, tz))
+    except QuerySyntaxError:
+        return False
 
 
 def log_to_traceql_document(log: LogDict, tz: str | tzinfo) -> Document:
@@ -44,6 +48,7 @@ def log_to_traceql_document(log: LogDict, tz: str | tzinfo) -> Document:
     where: Mapping[str, Any] = cast(Mapping[str, Any], log.get("where", {}))
     what: Mapping[str, Any] = cast(Mapping[str, Any], log.get("what", {}))
     context: Mapping[str, Any] = cast(Mapping[str, Any], log.get("context", {}))
+    normalized_context: dict[str, Any] = _unwrap_logger_values(context)
     message: str = str(what.get("message", ""))
     local_dt: datetime | None = _to_local_datetime(log.get("time"), tz)
 
@@ -55,7 +60,8 @@ def log_to_traceql_document(log: LogDict, tz: str | tzinfo) -> Document:
         "output": log.get("output", ""),
         "where": dict(where),
         "what": dict(what),
-        "context": dict(context),
+        "context": normalized_context,
+        "raw_context": dict(context),
         "message": message,
         "msg": message,
         "function": where.get("function", ""),
@@ -122,3 +128,19 @@ def _resolve_timezone(tz: str | tzinfo) -> tzinfo:
         if tz == "Asia/Tokyo":
             return timezone(timedelta(hours=9))
         return timezone.utc
+
+
+def _unwrap_logger_values(value: object) -> Any:
+    """Loggerの {"type": ..., "value": ...} 形式を検索向けの素直な値へ戻す。"""
+    if isinstance(value, Mapping):
+        mapping: Mapping[str, object] = cast(Mapping[str, object], value)
+        if set(mapping.keys()) == {"type", "value"}:
+            return _unwrap_logger_values(mapping["value"])
+        return {str(key): _unwrap_logger_values(child) for key, child in mapping.items()}
+    if isinstance(value, list):
+        list_value: list[object] = cast(list[object], value)
+        return [_unwrap_logger_values(child) for child in list_value]
+    if isinstance(value, tuple):
+        tuple_value: tuple[object, ...] = cast(tuple[object, ...], value)
+        return tuple(_unwrap_logger_values(child) for child in tuple_value)
+    return value
