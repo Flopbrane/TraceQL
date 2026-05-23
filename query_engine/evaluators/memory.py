@@ -11,7 +11,6 @@ from query_engine.ast import (
     EmptyNode,
     FieldNode,
     NotNode,
-    OrNode,
     PhraseNode,
     QueryNode,
     RegexNode,
@@ -63,9 +62,7 @@ def match_node(node: QueryNode, document: Document) -> bool:
         return not match_node(node.child, document)
     if isinstance(node, AndNode):
         return match_node(node.left, document) and match_node(node.right, document)
-    if isinstance(node, OrNode):
-        return match_node(node.left, document) or match_node(node.right, document)
-    raise TypeError(f"未対応の検索ノードです: {node!r}")
+    return match_node(node.left, document) or match_node(node.right, document)
 
 
 def _to_node(query: str | SearchQuery | QueryNode) -> QueryNode:

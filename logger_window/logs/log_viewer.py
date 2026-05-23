@@ -49,6 +49,7 @@ from logger_window.logs.search_matcher import (
 )
 from logger_window.logs.search_models import AggregateResult, SearchQuery
 from logger_window.logs.search_text_analysis import parse_query
+from logger_window.logs.search_text_preprocessor import build_search_text_datetime
 from logger_window.logs.time_utils import (
     to_world_local_datetime,
 )
@@ -825,81 +826,7 @@ class LogViewer:
         search_text: str,
     ) -> str:
         """時間だけの検索文字列をdatetime形式へ補完する"""
-
-        if not self.raw_rows:
-            return search_text
-
-        first_log_time: Any | None = self.raw_rows[0].get("time")
-
-        if not isinstance(first_log_time, str):
-            return search_text
-
-        dt: datetime | None = to_world_local_datetime(
-            first_log_time,
-            self.current_tz,
-        )
-
-        if dt is None:
-            return search_text
-
-        date_str: str = dt.strftime("%Y-%m-%d")
-
-        # =========================
-        # HH:MM..HH:MM
-        # =========================
-        match_range: re.Match[str] | None = re.fullmatch(
-            r"(\d{1,2}:\d{1,2})\.\.(\d{1,2}:\d{1,2})",
-            search_text,
-        )
-
-        if match_range:
-            start_time: str = match_range.group(1)
-            end_time: str = match_range.group(2)
-
-            return (
-                f"{date_str} {start_time}"
-                f".."
-                f"{date_str} {end_time}"
-            )
-
-        # =========================
-        # HH:MM..
-        # =========================
-        match_start: re.Match[str] | None = re.fullmatch(
-            r"(\d{1,2}:\d{1,2})\.\.",
-            search_text,
-        )
-
-        if match_start:
-            start_time: str = match_start.group(1)
-
-            return f"{date_str} {start_time}.."
-
-        # =========================
-        # ..HH:MM
-        # =========================
-        match_end: re.Match[str] | None = re.fullmatch(
-            r"\.\.(\d{1,2}:\d{1,2})",
-            search_text,
-        )
-
-        if match_end:
-            end_time: str = match_end.group(1)
-
-            return f"..{date_str} {end_time}"
-
-        # =========================
-        # HH:MM
-        # =========================
-        match_single: re.Match[str] | None = re.fullmatch(
-            r"(\d{1,2}:\d{1,2})",
-            search_text,
-        )
-
-        if match_single:
-            return search_text
-
-        return search_text
+        return build_search_text_datetime(search_text, self.raw_rows, self.current_tz)
 
 
     def apply_filter(self, _event: tk.Event | None = None) -> None:

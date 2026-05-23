@@ -15,7 +15,6 @@ from query_engine.ast import (
     EmptyNode,
     FieldNode,
     NotNode,
-    OrNode,
     PhraseNode,
     QueryNode,
     RegexNode,
@@ -75,9 +74,7 @@ class _SqlCompiler:
             return f"NOT ({sql})", params
         if isinstance(node, AndNode):
             return self._compile_binary("AND", node.left, node.right)
-        if isinstance(node, OrNode):
-            return self._compile_binary("OR", node.left, node.right)
-        raise TypeError(f"未対応の検索ノードです: {node!r}")
+        return self._compile_binary("OR", node.left, node.right)
 
     def _compile_binary(self, operator: str, left: QueryNode, right: QueryNode) -> tuple[str, list[object]]:
         left_sql: str
