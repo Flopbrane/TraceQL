@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone, tzinfo
-from typing import Any, Mapping, cast
+from typing import Any, Iterable, Mapping, cast
+
 from zoneinfo import ZoneInfo
 
-from logger_window.logs.log_types import LogDict
+from logs.log_types import LogDict
 
 # TRACEQL_ROOT = Path(__file__).resolve().parents[2]
 # if str(TRACEQL_ROOT) not in sys.path:
@@ -32,6 +34,16 @@ TOP_PATTERN: re.Pattern[str] = re.compile(
 )
 
 
+@dataclass(frozen=True, slots=True)
+class TraceQLLogResult:
+    """TraceQL解析後にViewerへ返すための境界データ。"""
+
+    index: int
+    matched: bool
+    log: LogDict
+    document: Document
+
+
 def match_traceql_search(log: LogDict, raw_query: str, tz: str | tzinfo) -> bool:
     """Loggerの1行をTraceQLのメモリ検索で判定する。"""
     query: str = _strip_result_modifiers(raw_query).strip()
@@ -41,6 +53,59 @@ def match_traceql_search(log: LogDict, raw_query: str, tz: str | tzinfo) -> bool
         return match_query(query, log_to_traceql_document(log, tz))
     except QuerySyntaxError:
         return False
+
+
+def analyze_logs_for_viewer(
+    logs: Iterable[LogDict],
+    raw_query: str,
+    tz: str | tzinfo,
+) -> list[TraceQLLogResult]:
+    """Loggerのログ列をTraceQLで解析し、Viewerが扱いやすい結果へ戻す。
+
+    logs層からTraceQLへ渡す入口はこのbridgeに限定する。
+    呼び出し側はquery_engineのDocumentやparserを直接importしない。
+    """
+    query: str = _strip_result_modifiers(raw_query).strip()
+    if not query:
+        return [
+            TraceQLLogResult(
+                index=index,
+                matched=True,
+                log=log,
+                document=log_to_traceql_document(log, tz),
+            )
+            for index, log in enumerate(logs)
+        ]
+
+    results: list[TraceQLLogResult] = []
+    for index, log in enumerate(logs):
+        document: Document = log_to_traceql_document(log, tz)
+        try:
+            matched = match_query(query, document)
+        except QuerySyntaxError:
+            matched = False
+        results.append(
+            TraceQLLogResult(
+                index=index,
+                matched=matched,
+                log=log,
+                document=document,
+            )
+        )
+    return results
+
+
+def filter_logs_for_viewer(
+    logs: Iterable[LogDict],
+    raw_query: str,
+    tz: str | tzinfo,
+) -> list[LogDict]:
+    """TraceQL解析結果からViewer表示用のLogDictだけを返す。"""
+    return [
+        result.log
+        for result in analyze_logs_for_viewer(logs, raw_query, tz)
+        if result.matched
+    ]
 
 
 def log_to_traceql_document(log: LogDict, tz: str | tzinfo) -> Document:
